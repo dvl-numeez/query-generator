@@ -13,7 +13,7 @@ import (
 
 func main() {
 
-	reader := bufio.NewScanner(os.Stdin)
+	reader := bufio.NewScanner(os.Stdin)	
 	for {
 		fmt.Print("> Enter your query : ")
 		reader.Scan()
@@ -39,8 +39,8 @@ func generateQuery(statement string) {
 		log.Println(err)
 	}
 	request := &api.GenerateRequest{
-		Model:  "codellama",
-		Prompt: fmt.Sprintf("%s\n\n%s\n\n%s\n\nUser instruction: %s", instruction, dbInstruction, datastructureInstruction, statement),
+		Model: "codellama",
+		Prompt: prompt + "\n" + statement,
 		Stream: new(bool),
 		System: systemPrompt,
 	}

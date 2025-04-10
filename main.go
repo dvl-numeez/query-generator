@@ -18,6 +18,7 @@ var output = result{
 	answers: make(map[string]string),
 	mux:     sync.Mutex{},
 }
+const maxConcurrent = 2 
 var questions = []string{
 	"When did couch first occur in the video?",
 	"When did couch last occur in the video?",
@@ -46,9 +47,16 @@ var questions = []string{
 
 func main() {
 	wg := sync.WaitGroup{}
+	sem := make(chan struct{}, maxConcurrent)
 	for _, question := range questions {
 		wg.Add(1)
-		go generateQuery(question, &wg)
+		sem <- struct{}{} // acquire slot
+
+		go func(q string) {
+			defer wg.Done()
+			generateQuery(q,)
+			<-sem // release slot
+		}(question)
 	}
 
 	wg.Wait()
@@ -62,8 +70,7 @@ func main() {
 
 }
 
-func generateQuery(statement string, wg *sync.WaitGroup) {
-	defer wg.Done()
+func generateQuery(statement string) {
 	fmt.Println()
 	fmt.Println("generating answer for: ", statement)
 	fmt.Println()
@@ -72,13 +79,14 @@ func generateQuery(statement string, wg *sync.WaitGroup) {
 		log.Println(err)
 	}
 	request := &api.GenerateRequest{
-		Model:  "mistral",
+		Model:  "codellama",
 		Prompt: prompt + "\n" + statement,
 		Stream: new(bool),
 		System: systemPrompt,
 	}
 	ctx := context.Background()
 	respFunc := func(resp api.GenerateResponse) error {
+		fmt.Println("Answer fetched for question : ",statement)
 		output.mux.Lock()
 		output.answers[statement] = resp.Response
 		output.mux.Unlock()
